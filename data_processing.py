@@ -166,3 +166,5 @@ print("First class",first_class.aggregate(lambda x: sum(x)/len(x), 'fare'),"Thir
 female_survived=my_table5.filter(lambda x: x["gender"]=="F").filter(lambda x: x["survived"]=="yes")
 male_survived=my_table5.filter(lambda x: x["gender"]=="M").filter(lambda x: x["survived"]=="yes")
 print("Male survived",male_survived.aggregate(lambda x: len(x), 'fare'),"Female survived",female_survived.aggregate(lambda x: len(x), 'fare'))
+male_southampton=my_table5.filter(lambda x: x["gender"]=="M").filter(lambda x: x["embarked"]=="Southampton")
+print("Male Southampton : ", male_southampton.aggregate(lambda x: len(x), 'fare'))
