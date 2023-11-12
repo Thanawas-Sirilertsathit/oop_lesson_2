@@ -1,4 +1,5 @@
 import csv, os
+import combination_gen
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -70,12 +71,24 @@ class Table:
                 filtered_table.table.append(item1)
         return filtered_table
     
+    def __is_float(self, element):
+        if element is None: 
+            return False
+        try:
+            float(element)
+            return True
+        except ValueError:
+            return False
+
     def aggregate(self, function, aggregation_key):
         temps = []
         for item1 in self.table:
-            temps.append(float(item1[aggregation_key]))
+            if self.__is_float(item1[aggregation_key]):
+                temps.append(float(item1[aggregation_key]))
+            else:
+                temps.append(item1[aggregation_key])
         return function(temps)
-    
+
     def select(self, attributes_list):
         temps = []
         for item1 in self.table:
@@ -85,6 +98,28 @@ class Table:
                     dict_temp[key] = item1[key]
             temps.append(dict_temp)
         return temps
+    
+    def pivot_table(self, keys_to_pivot_list, keys_to_aggreagte, aggregate_func_list):
+        unique_values_list = []
+        for key in keys_to_pivot_list:
+            _list = []
+            for d in self.select(keys_to_pivot_list):
+                if d.get(key) not in _list:
+                    _list.append(d.get(key))
+            unique_values_list.append(_list)
+        comb = combination_gen.gen_comb_list(unique_values_list)
+        pivoted = []
+        for i in comb:
+            temp = self.filter(lambda x: x[keys_to_pivot_list[0]] == i[0])
+            for j in range(1, len(keys_to_pivot_list)):
+                temp = temp.filter(lambda x: x[keys_to_pivot_list[j]] == i[j])
+            temp_list = []
+            for a in range(len(keys_to_aggreagte)):
+                result = temp.aggregate(aggregate_func_list[a], keys_to_aggreagte[a])
+                temp_list.append(result)
+            pivoted.append([i, temp_list])
+        return pivoted
+
 
     def __str__(self):
         return self.table_name + ':' + str(self.table)
@@ -118,8 +153,8 @@ my_table1 = my_DB.search('cities')
 # print()
 
 # print("Test join: finding cities in non-EU countries whose temperatures are below 5.0")
-# my_table2 = my_DB.search('countries')
-# my_table3 = my_table1.join(my_table2, 'country')
+my_table11 = my_DB.search('countries')
+my_tablecitycountry = my_table1.join(my_table11, 'country')
 # my_table3_filtered = my_table3.filter(lambda x: x['EU'] == 'no').filter(lambda x: float(x['temperature']) < 5.0)
 # print(my_table3_filtered.table)
 # print()
@@ -166,3 +201,15 @@ print("First class",first_class.aggregate(lambda x: sum(x)/len(x), 'fare'),"Thir
 female_survived=my_table5.filter(lambda x: x["gender"]=="F").filter(lambda x: x["survived"]=="yes")
 male_survived=my_table5.filter(lambda x: x["gender"]=="M").filter(lambda x: x["survived"]=="yes")
 print("Male survived",male_survived.aggregate(lambda x: len(x), 'fare'),"Female survived",female_survived.aggregate(lambda x: len(x), 'fare'))
+table6 = Table('titanic', titanic)
+my_DB.insert(table6)
+my_table6 = my_DB.search('titanic')
+# my_pivot = my_table6.pivot_table(['embarked', 'gender', 'class'], ['fare', 'fare', 'fare', 'last'], [lambda x: min(x), lambda x: max(x), lambda x: sum(x)/len(x), lambda x: len(x)])
+# print(my_pivot)
+my_table7 = my_DB.search("players")
+my_pivot1 = my_table7.pivot_table(['position'], ["passes","shots"], [lambda x: sum(x)/len(x), lambda x: sum(x)/len(x)])
+print(my_pivot1)
+my_pivot2 = my_tablecitycountry.pivot_table(['EU',"coastline"], ["temperature","latitude","latitude"], [lambda x: sum(x)/len(x), lambda x: min(x), lambda x: max(x)])
+print(my_pivot2)
+my_pivot3 = my_table6.pivot_table(['class', 'gender', 'survived'], ['fare', 'fare'], [lambda x: len(x), lambda x: sum(x)/len(x)])
+print(my_pivot3)
